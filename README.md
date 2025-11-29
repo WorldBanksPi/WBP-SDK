@@ -2,7 +2,7 @@
 # WBP SDK (Software Development Kit)
 
 [![NPM Version](https://img.shields.io/npm/v/wbp-sdk.svg)](https://www.npmjs.com/package/wbp-sdk)
-[![License](https://img.shields.io/npm/l/wbp-sdk.svg)](https://github.com/WorldBanksPi/WBP-SDK/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/WorldBanksPi/WBP-SDK)](https://github.com/WorldBanksPi/WBP-SDK/blob/main/LICENSE)
 
 The **WorldBanksPi (WBP) SDK** is a developer toolkit that enables other DApps within the Pi Network ecosystem to easily integrate with WorldBanksPi's powerful financial infrastructure and the WBP Token economy.
 
@@ -46,14 +46,13 @@ For detailed guides and API references, please see our **[Official Developer Doc
 
 This SDK is licensed under the MIT License.
 
----------------------------
-
+-------------------------------------------
 
 
 # WBP SDK (소프트웨어 개발 키트)
 
 [![NPM Version](https://img.shields.io/npm/v/wbp-sdk.svg)](https://www.npmjs.com/package/wbp-sdk)
-[![License](https://img.shields.io/npm/l/wbp-sdk.svg)](https://github.com/WorldBanksPi/WBP-SDK/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/WorldBanksPi/WBP-SDK)](https://github.com/WorldBanksPi/WBP-SDK/blob/main/LICENSE)
 
 **WorldBanksPi(WBP) SDK**는 파이 네트워크(Pi Network) 생태계의 다른 앱(DApp)들이 WorldBanksPi의 강력한 금융 인프라와 WBP 토큰 이코노미를 자신의 서비스에 쉽게 통합할 수 있도록 돕는 개발자용 도구 상자입니다.
 
@@ -97,4 +96,4 @@ checkUserBalance('G...');
 
 본 SDK는 MIT 라이선스를 따릅니다.
 
----------------------------
+-------------------------------------------
