@@ -1,0 +1,15 @@
+WBP-SDK/
+├── .github/                      # (선택) 깃허브 이슈 템플릿 등 자동화 파일
+│   └── ISSUE_TEMPLATE/
+│       └── bug_report.md
+├── docs/                         # 개발자 포털/온라인 설명서의 원본 파일
+│   ├── 01-introduction.md
+│   ├── 02-getting-started.md
+│   ├── 03-api-reference.md
+│   └── examples.md
+├── src/                          # SDK의 실제 소스 코드
+│   └── index.js                  # (예: WbpSdk 클래스가 정의된 메인 파일)
+├── .gitignore                    # Git이 추적하지 않을 파일 목록 (node_modules 등)
+├── package.json                  # 프로젝트 정보 및 의존성 관리 파일
+├── PROJECT_WBP-sdk All_Directory # WBP-sdk 의 전체 Directory
+└── README.md                     # 저장소의 얼굴! 가장 중요한 첫 설명서
