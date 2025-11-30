@@ -5,8 +5,8 @@ const axios = require('axios');
 
 // 개발 환경(sandbox)과 실제 운영 환경(production)의 API 서버 주소를 미리 정의합니다.
 const ENVIRONMENTS = {
-    sandbox: 'https://worldbankspi.netlify.app/sdk-api/v1',    // 개발 및 테스트용 가상 서버 주소
-    production: 'https://worldbankspi.netlify.app/sdk-api/v1'  // 실제 서비스용 서버 주소
+    sandbox: 'https://worldbankspi.netlify.app/sdk/v1',    // 개발 및 테스트용 가상 서버 주소
+    production: 'https://worldbankspi.netlify.app/sdk/v1'  // 실제 서비스용 서버 주소
 };
 
 /**
