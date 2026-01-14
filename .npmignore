@@ -1,0 +1,13 @@
+# Node.js
+node_modules
+npm-debug.log*
+
+# Test files
+test.js
+
+# API Key Generator
+generate-apikey.js
+
+# Operating System files
+.DS_Store
+Thumbs.db

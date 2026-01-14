@@ -4,7 +4,7 @@
   "description": "The official SDK for integrating with the WorldBanksPi financial platform on the Pi Network.",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",
@@ -12,10 +12,12 @@
   },
   "keywords": [
     "pi-network",
+    "pi",
     "worldbankspi",
     "wbp",
     "crypto",
-    "sdk"
+    "sdk",
+    "blockchain"
   ],
   "author": "WorldBanksPi",
   "license": "MIT",
@@ -25,5 +27,11 @@
   "homepage": "https://github.com/WorldBanksPi/WBP-SDK#readme",
   "dependencies": {
     "axios": "^1.0.0"
-  }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ]
 }
