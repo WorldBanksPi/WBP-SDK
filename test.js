@@ -1,4 +1,5 @@
 // 파일 경로: WBP-SDK/test.js
+// 테스트 실행: node test.js
 
 const { WbpSdk } = require('./src/index.js');
 
