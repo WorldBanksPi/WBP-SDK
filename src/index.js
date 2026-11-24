@@ -1,95 +1,176 @@
 // 파일명: src/index.js
 
-// 외부 서버와 통신(API 호출)을 쉽게 할 수 있도록 도와주는 라이브러리입니다.
 const axios = require('axios');
 
-// 개발 환경(sandbox)과 실제 운영 환경(production)의 API 서버 주소를 미리 정의합니다.
 const ENVIRONMENTS = {
-    sandbox: 'https://worldbankspi.netlify.app/sdk/v1',    // 개발 및 테스트용 가상 서버 주소
-    production: 'https://worldbankspi.netlify.app/sdk/v1'  // 실제 서비스용 서버 주소
+    sandbox: 'https://worldbankspidev.netlify.app/sdk/v1',
+    production: 'https://worldbankspi.netlify.app/sdk/v1'
 };
 
+const PI_PUBLIC_KEY_REGEX = /^G[A-Z2-7]{55}$/;
+const PAYMENT_ID_REGEX = /^wbp_[a-f0-9]{16,32}$/;
+
+function assertValidPiAddress(piAddress) {
+    if (typeof piAddress !== 'string' || !PI_PUBLIC_KEY_REGEX.test(piAddress.trim())) {
+        throw new Error('유효한 파이/스텔라 공개 지갑 주소(G로 시작하는 56자리)를 입력해야 합니다.');
+    }
+    return piAddress.trim();
+}
+
 /**
- * WorldBanksPi 플랫폼과 연동하기 위한 메인 SDK 클래스입니다.
+ * WorldBanksPi 플랫폼과 연동하기 위한 공식 SDK 클래스입니다.
  */
 class WbpSdk {
     /**
      * SDK를 초기화합니다.
      * @param {object} config - SDK 설정 객체
      * @param {string} config.apiKey - 파트너 포털에서 발급받은 고유 API 키
-     * @param {('sandbox'|'production')} [config.environment='production'] - API 환경 (기본값: production)
+     * @param {('sandbox'|'production')} [config.environment='production'] - API 환경
+     * @param {string} [config.baseUrl] - 커스텀 API 베이스 URL (선택)
+     * @param {number} [config.timeout=15000] - 요청 타임아웃(ms)
      */
     constructor(config) {
-        // API 키가 없으면 SDK를 초기화할 수 없으므로 에러를 발생시킵니다.
-        if (!config || !config.apiKey) {
+        if (!config || !config.apiKey || typeof config.apiKey !== 'string') {
             throw new Error('API 키는 SDK를 초기화하는 데 필수 항목입니다.');
         }
 
-        this.apiKey = config.apiKey;
-        this.environment = config.environment || 'production';
-        
-        // API 통신을 위한 '전용 클라이언트'를 생성합니다.
-        // 모든 요청에 기본 주소와 인증 헤더가 자동으로 포함됩니다.
+        const env = config.environment || 'production';
+        if (!ENVIRONMENTS[env]) {
+            throw new Error(`유효하지 않은 environment 값입니다: '${env}'. 'sandbox' 또는 'production'을 사용하세요.`);
+        }
+
+        this.apiKey = config.apiKey.trim();
+        this.environment = env;
+        this.isSandbox = env === 'sandbox';
+        this.baseUrl = (config.baseUrl && typeof config.baseUrl === 'string')
+            ? config.baseUrl.replace(/\/+$/, '')
+            : ENVIRONMENTS[env];
+
         this.client = axios.create({
-            baseURL: ENVIRONMENTS[this.environment],
+            baseURL: this.baseUrl,
+            timeout: typeof config.timeout === 'number' && config.timeout > 0 ? config.timeout : 15000,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`
             }
         });
 
-        // 기능별로 API를 그룹화하여 (wallets, transactions 등) 사용 편의성을 높입니다.
         this.wallets = {
             /**
-             * 특정 사용자의 WBP 잔액을 조회합니다.
-             * @param {string} piAddress - 조회할 사용자의 파이 지갑 주소 (G...)
-             * @returns {Promise<object>} 잔액 정보가 담긴 객체
+             * 특정 사용자의 WBP 단일 잔액을 조회합니다.
+             * @param {string} piAddress - 조회할 파이 지갑 주소 (G..., 56자)
+             * @returns {Promise<object>}
              */
             getBalance: async (piAddress) => {
-                if (!piAddress || !piAddress.startsWith('G')) {
-                    throw new Error('유효한 파이 지갑 주소를 입력해야 합니다.');
-                }
+                const addr = assertValidPiAddress(piAddress);
                 try {
-                    // 위에서 만든 client를 사용하여 실제 API를 호출합니다.
-                    const response = await this.client.get(`/wallets/${piAddress}/balance`);
-                    return response.data; // 성공 시 서버가 보내준 JSON 데이터를 반환합니다.
+                    const response = await this.client.get(`/wallets/${addr}/balance`, {
+                        params: { isSandbox: this.isSandbox }
+                    });
+                    return response.data;
                 } catch (error) {
-                    // API 호출 실패 시, 표준화된 에러 처리를 위해 _handleError 함수를 호출합니다.
-                    // 여기서 'this'는 WbpSdk 클래스 인스턴스를 가리킵니다.
+                    throw this._handleError(error);
+                }
+            },
+
+            /**
+             * 특정 사용자의 Pi 및 WBP 통합 잔액과 지갑 개통 여부를 조회합니다.
+             * @param {string} piAddress - 조회할 파이 지갑 주소 (G..., 56자)
+             * @returns {Promise<object>}
+             */
+            getBalances: async (piAddress) => {
+                const addr = assertValidPiAddress(piAddress);
+                try {
+                    const response = await this.client.get(`/wallets/${addr}/balances`, {
+                        params: { isSandbox: this.isSandbox }
+                    });
+                    return response.data;
+                } catch (error) {
                     throw this._handleError(error);
                 }
             }
         };
 
         this.transactions = {
-            // 향후 여기에 WBP 전송, 교환 등 거래 관련 함수들이 추가될 예정입니다.
+            /**
+             * 사용자에게 WBP 토큰을 전송합니다 (App-to-User).
+             * @param {object} params
+             * @param {string} [params.recipient] - 수취인 지갑 주소 (G..., 56자)
+             * @param {string} [params.recipientPublicKey] - 수취인 지갑 주소 (recipient 별칭)
+             * @param {string|number} params.amount - 전송할 WBP 수량 (0 초과)
+             * @returns {Promise<object>}
+             */
+            send: async (params) => {
+                if (!params || typeof params !== 'object') {
+                    throw new Error('전송 파라미터 객체가 필요합니다.');
+                }
+                const targetAddr = assertValidPiAddress(params.recipientPublicKey || params.recipient);
+                const numericAmount = Number(params.amount);
+                if (!isFinite(numericAmount) || numericAmount <= 0) {
+                    throw new Error('유효한 전송 수량(0보다 큰 숫자)을 입력해야 합니다.');
+                }
+
+                try {
+                    const response = await this.client.post('/transactions', {
+                        recipientPublicKey: targetAddr,
+                        amount: numericAmount.toFixed(7),
+                        isSandbox: this.isSandbox
+                    });
+                    return response.data;
+                } catch (error) {
+                    throw this._handleError(error);
+                }
+            }
         };
 
-        // [기술적 안정성 보강]
-        // wallets.getBalance 함수 내부에서 사용되는 'this'가 항상 WbpSdk 클래스 자신을
-        // 가리키도록 강제로 고정(bind)합니다. 이는 예기치 못한 'this' 관련 에러를 방지합니다.
+        this.payments = {
+            /**
+             * 비수탁형 WBP 페이먼트 결제 건의 상태 및 온체인 TxHash를 검증합니다.
+             * @param {string} paymentId - WBP 결제 ID (wbp_...)
+             * @returns {Promise<object>}
+             */
+            get: async (paymentId) => {
+                if (typeof paymentId !== 'string' || !PAYMENT_ID_REGEX.test(paymentId.trim())) {
+                    throw new Error('유효한 WBP paymentId(wbp_...)를 입력해야 합니다.');
+                }
+                const cleanId = paymentId.trim();
+                try {
+                    const response = await this.client.get(`/payments/${cleanId}`, {
+                        params: { isSandbox: this.isSandbox }
+                    });
+                    return response.data;
+                } catch (error) {
+                    throw this._handleError(error);
+                }
+            }
+        };
+
         this.wallets.getBalance = this.wallets.getBalance.bind(this);
+        this.wallets.getBalances = this.wallets.getBalances.bind(this);
+        this.transactions.send = this.transactions.send.bind(this);
+        this.payments.get = this.payments.get.bind(this);
     }
 
     /**
-     * API 에러를 표준화된 형식으로 처리하는 내부 헬퍼 함수입니다.
+     * API 에러를 표준화된 형식으로 처리합니다.
      * @private
      */
     _handleError(error) {
-        // 서버가 구체적인 에러 메시지를 보내준 경우
-        if (error.response && error.response.data && error.response.data.message) {
-            return new Error(error.response.data.message);
-        } 
-        // 서버가 응답 자체를 하지 못한 경우 (네트워크 문제 등)
-        else if (error.request) {
-            return new Error('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
-        } 
-        // 그 외의 예기치 못한 오류
-        else {
-            return new Error(`요청 처리 중 예기치 못한 오류가 발생했습니다: ${error.message}`);
+        if (error.response && error.response.data) {
+            const msg = error.response.data.message || `API 요청 실패 (HTTP ${error.response.status})`;
+            const err = new Error(msg);
+            err.statusCode = error.response.status;
+            err.responseData = error.response.data;
+            return err;
         }
+        if (error.code === 'ECONNABORTED') {
+            return new Error('서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+        }
+        if (error.request) {
+            return new Error('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
+        }
+        return new Error(`요청 처리 중 예기치 못한 오류가 발생했습니다: ${error.message}`);
     }
 }
 
-// 다른 파일에서 `const { WbpSdk } = require('wbp-sdk');` 형태로 사용할 수 있도록 클래스를 공개합니다.
-module.exports = { WbpSdk };
+module.exports = { WbpSdk, ENVIRONMENTS };
