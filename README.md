@@ -1,9 +1,17 @@
-# WBP SDK (Software Development Kit)
+# WBP SDK v1.0.0 (Software Development Kit)
 
 [![NPM Version](https://img.shields.io/npm/v/wbp-sdk.svg)](https://www.npmjs.com/package/wbp-sdk)
 [![GitHub license](https://img.shields.io/github/license/WorldBanksPi/WBP-SDK)](https://github.com/WorldBanksPi/WBP-SDK/blob/main/LICENSE)
 
-The **WorldBanksPi (WBP) SDK** is a developer toolkit that enables DApps and merchants within the Pi Network ecosystem to integrate with WorldBanksPi's financial infrastructure, WBP Token economy, and non-custodial WBP Payments.
+The official **WorldBanksPi (WBP) SDK** enables DApps and online merchants on the Pi Network to accept non-custodial Pi & WBP payments, verify real-time webhooks, check on-chain balances, and distribute WBP tokens safely with idempotency protection.
+
+## Features
+- **CommonJS & ESM Dual Support** + Full **TypeScript Definitions (`src/index.d.ts`)**
+- **Merchant Checkout (`sdk.payments.createCheckout`)**: Generate hosted payment links & QR codes with auto-filled WorldBanksPi checkout UI
+- **Webhook Verification (`WbpSdk.verifyWebhookSignature`)**: Constant-time `HMAC-SHA256` signature check
+- **Idempotent Payouts (`sdk.transactions.send`)**: `idempotencyKey` prevents double-spends on network retries
+- **Combined Balances (`sdk.wallets.getBalances`)**: Fetch Pi + WBP balances and on-chain activation status in one call
+- **Automatic Retry**: Exponential backoff on transient 5xx/network errors for read endpoints
 
 ## Installation
 
@@ -11,123 +19,61 @@ The **WorldBanksPi (WBP) SDK** is a developer toolkit that enables DApps and mer
 npm install wbp-sdk
 ```
 
-## Configuration
-
-```javascript
-const { WbpSdk } = require('wbp-sdk');
-
-const sdk = new WbpSdk({
-    apiKey: process.env.WBP_API_KEY, // Provided by the WorldBanksPi team
-    environment: 'sandbox',          // 'sandbox' (Pi Testnet) or 'production' (Pi Mainnet)
-    timeout: 15000                   // Optional: request timeout in ms (default: 15000)
-});
-```
-
-* `apiKey` (required): Partner secret API key for Bearer authentication.
-* `environment` (optional): `'sandbox'` for Pi Testnet (`isSandbox=true`) or `'production'` for Pi Mainnet (default: `'production'`).
-* `baseUrl` (optional): Custom API base URL override.
-* `timeout` (optional): HTTP timeout in milliseconds (default: `15000`).
-
 ## Quick Start
 
-### 1. Get WBP Balance (`sdk.wallets.getBalance`)
 ```javascript
-const result = await sdk.wallets.getBalance('G...56CHARS');
-console.log(result);
-// { success: true, asset: 'WBP', balance: '100.0000000', network: 'testnet' }
-```
+// CommonJS
+const { WbpSdk } = require('wbp-sdk');
+// or ESM:
+// import { WbpSdk } from 'wbp-sdk';
 
-### 2. Get Pi + WBP Combined Balances (`sdk.wallets.getBalances`)
-```javascript
-const result = await sdk.wallets.getBalances('G...56CHARS');
-console.log(result);
-// { success: true, address: 'G...', exists: true, balances: { pi: '12.5000000', wbp: '100.0000000' }, network: 'testnet' }
-```
-
-### 3. Send WBP Tokens (`sdk.transactions.send`)
-```javascript
-const result = await sdk.transactions.send({
-    recipient: 'G...56CHARS', // or recipientPublicKey
-    amount: '12.5'
+const sdk = new WbpSdk({
+    apiKey: process.env.WBP_API_KEY,
+    environment: 'sandbox' // 'sandbox' (Pi Testnet) or 'production' (Pi Mainnet)
 });
-console.log('Tx Hash:', result.hash);
+
+// 1. Create a Merchant Checkout Session
+const { checkout } = await sdk.payments.createCheckout({
+    orderId: 'ORDER-2026-001',
+    amount: '10',
+    assetType: 'pi', // 'pi' or 'wbp'
+    recipientAddress: 'G...56CHARS',
+    returnUrl: 'https://your-shop.com/complete',
+    webhookUrl: 'https://your-shop.com/api/webhooks/wbp'
+});
+console.log('Redirect customer to:', checkout.checkoutUrl);
+
+// 2. Verify Webhook Signature (Express example)
+const valid = WbpSdk.verifyWebhookSignature(rawBody, req.headers['x-wbp-signature'], webhookSecret);
+
+// 3. Check Pi + WBP Balances
+const balances = await sdk.wallets.getBalances('G...56CHARS');
+
+// 4. Send WBP Reward (with Idempotency Key)
+const tx = await sdk.transactions.send({
+    recipient: 'G...56CHARS',
+    amount: '25.5',
+    idempotencyKey: 'reward_order_2026_001'
+});
 ```
 
-### 4. Verify Non-Custodial WBP Payment (`sdk.payments.get`)
-```javascript
-const result = await sdk.payments.get('wbp_1234567890abcdef');
-if (result.payment.status === 'completed') {
-    console.log('Verified on-chain TxHash:', result.payment.txHash);
-}
-```
-
-## Documentation
-
-See **[Official Developer Docs](./docs/01-introduction.md)** and **[API Reference](./docs/03-api-reference.md)**.
-
-## License
-
-MIT License.
+See **[examples/express-shop.js](./examples/express-shop.js)** for a complete 5-minute merchant integration, and **[docs/03-api-reference.md](./docs/03-api-reference.md)** for full API specs.
 
 ---
 
-# WBP SDK (소프트웨어 개발 키트)
+# WBP SDK v1.0.0 (소프트웨어 개발 키트)
 
-**WorldBanksPi(WBP) SDK**는 파이 네트워크(Pi Network) 생태계의 DApp 및 가맹점이 WorldBanksPi의 금융 인프라, WBP 토큰 이코노미, 비수탁형 WBP 페이먼트를 쉽게 연동할 수 있도록 돕는 공식 개발자 키트입니다.
+**WorldBanksPi(WBP) 공식 SDK**는 파이 네트워크 기반 DApp 및 가맹점이 비수탁형 Pi/WBP 결제창(Checkout), 실시간 웹훅 검증, 온체인 잔액 조회, 이중 출금 방지 토큰 전송을 단 몇 줄의 코드로 연동할 수 있게 해줍니다.
 
-## 설치
+## 주요 기능
+- **CommonJS(`require`) + ESM(`import`) 동시 지원** 및 **TypeScript 타입 내장**
+- **가맹점 결제 세션 생성 (`sdk.payments.createCheckout`)**: 결제 URL·QR 발급 → 고객이 WorldBanksPi에서 지문 한 번으로 결제 완료
+- **웹훅 서명 검증 (`WbpSdk.verifyWebhookSignature`)**: `HMAC-SHA256` 상수 시간 비교로 위조 요청 원천 차단
+- **이중 출금 방지 (`idempotencyKey`)**: `sdk.transactions.send()` 재전송 시 중복 송금 차단
+- **Pi + WBP 통합 잔액 조회 (`sdk.wallets.getBalances`)** 및 **조회 요청 자동 재시도**
 
-```bash
-npm install wbp-sdk
-```
-
-## 환경 설정
-
-```javascript
-const { WbpSdk } = require('wbp-sdk');
-
-const sdk = new WbpSdk({
-    apiKey: process.env.WBP_API_KEY, // WorldBanksPi 팀 발급 파트너 API 키
-    environment: 'sandbox',          // 'sandbox'(테스트넷) 또는 'production'(메인넷)
-    timeout: 15000                   // 선택: 요청 타임아웃(ms, 기본값 15000)
-});
-```
-
-## 빠른 시작
-
-### 1. WBP 단일 잔액 조회 (`sdk.wallets.getBalance`)
-```javascript
-const result = await sdk.wallets.getBalance('G...56자리주소');
-console.log(`네트워크: ${result.network}, 잔액: ${result.balance} ${result.asset}`);
-```
-
-### 2. Pi + WBP 통합 잔액 조회 (`sdk.wallets.getBalances`)
-```javascript
-const result = await sdk.wallets.getBalances('G...56자리주소');
-console.log(`개통 여부: ${result.exists}, Pi: ${result.balances.pi}, WBP: ${result.balances.wbp}`);
-```
-
-### 3. WBP 토큰 전송 (`sdk.transactions.send`)
-```javascript
-const result = await sdk.transactions.send({
-    recipient: 'G...56자리주소', // 또는 recipientPublicKey
-    amount: '12.5'
-});
-console.log('Tx 해시:', result.hash);
-```
-
-### 4. 비수탁형 WBP 페이먼트 결제 검증 (`sdk.payments.get`)
-```javascript
-const result = await sdk.payments.get('wbp_1234567890abcdef');
-if (result.payment.status === 'completed') {
-    console.log('온체인 확정 TxHash:', result.payment.txHash);
-}
-```
-
-## 개발자 문서
-
-상세 가이드는 **[공식 개발자 문서](./docs/01-introduction.md)** 및 **[API 레퍼런스](./docs/03-api-reference.md)**를 참고해 주십시오.
+## 5분 가맹점 연동 예제
+전체 실행 예제는 **[examples/express-shop.js](./examples/express-shop.js)** 를 참고하세요.
 
 ## 라이선스
-
 MIT License.

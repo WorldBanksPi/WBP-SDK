@@ -1,9 +1,17 @@
 {
   "name": "wbp-sdk",
-  "version": "0.2.0",
-  "description": "The official SDK for integrating with the WorldBanksPi financial platform on the Pi Network.",
+  "version": "1.0.0",
+  "description": "The official SDK for integrating with the WorldBanksPi financial platform, WBP Token, and non-custodial WBP Payments on the Pi Network.",
   "main": "src/index.js",
+  "module": "src/index.mjs",
   "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs",
+      "require": "./src/index.js"
+    }
+  },
   "scripts": {
     "test": "node test.js"
   },
@@ -18,6 +26,8 @@
     "wbp",
     "crypto",
     "sdk",
+    "payments",
+    "checkout",
     "blockchain"
   ],
   "author": "WorldBanksPi",
@@ -31,6 +41,7 @@
   },
   "files": [
     "src",
+    "examples",
     "README.md",
     "LICENSE",
     "docs"
